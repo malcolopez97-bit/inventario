@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Stilo — Inventario</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{--ac:#b06a1a;--acb:#f5ece0;--bg:#faf9f7;--bd:#e8e4de;--tx:#1a1a18;--mu:#888}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--tx);font-size:15px;overflow:hidden;height:100vh}
+
+/* ── Swipe layout ── */
+#swipe-outer{position:fixed;inset:0;overflow:hidden}
+#swipe-wrap{display:flex;width:400%;height:100%;transition:transform .3s cubic-bezier(.4,0,.2,1);will-change:transform}
+.swipe-screen{width:25%;flex-shrink:0;height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch}
+
+/* ── Nav dots ── */
+#nav-dots{position:fixed;bottom:0;left:0;right:0;display:flex;justify-content:center;align-items:center;gap:8px;padding:10px 0 calc(10px + env(safe-area-inset-bottom));background:var(--bg);border-top:1px solid var(--bd);z-index:100}
+.dot{width:8px;height:8px;border-radius:4px;background:var(--bd);transition:all .25s;cursor:pointer}
+.dot.active{background:var(--ac);width:22px;border-radius:3px}
+
+/* ── Header ── */
+.s-hdr{background:#fff;border-bottom:1px solid var(--bd);padding:13px 20px;text-align:center;position:sticky;top:0;z-index:50}
+.s-hdr-title{font-size:14px;font-weight:700;letter-spacing:.3px}
+.s-hdr-title em{font-style:normal;color:var(--ac)}
+.s-hdr-sub{font-size:11px;color:#aaa;margin-top:2px}
+
+/* ── Content ── */
+.sec{padding:16px 16px calc(72px + env(safe-area-inset-bottom))}
+.sec-lbl{font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+.help{font-size:12px;color:#bbb;margin-top:5px;line-height:1.45}
+
+/* ── Card ── */
+.card{background:#fff;border:1px solid var(--bd);border-radius:12px;padding:14px}
+
+/* ── Chip ── */
+.chip{background:var(--acb);color:var(--ac);font-size:10px;font-weight:700;padding:2px 9px;border-radius:20px;display:inline-block;white-space:nowrap;flex-shrink:0}
+
+/* ── Form ── */
+.field{margin-bottom:14px}
+.field label{display:block;font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.inp{width:100%;padding:12px 14px;border:1.5px solid var(--bd);border-radius:9px;font-size:15px;font-family:inherit;background:#fff;color:var(--tx);outline:none;-webkit-appearance:none}
+.inp:focus{border-color:var(--ac)}
+.inp-sm{padding:9px 11px;font-size:14px}
+.inp-prefix{font-family:monospace;font-size:15px;font-weight:700;color:var(--ac);text-align:center;text-transform:uppercase;width:70px}
+.inp-prefix-sm{font-family:monospace;font-size:13px;font-weight:700;color:var(--ac);text-align:center;text-transform:uppercase;width:58px;padding:9px 6px}
+.sel{width:100%;padding:12px 14px;border:1.5px solid var(--bd);border-radius:9px;font-size:15px;font-family:inherit;background:#fff;color:var(--tx);outline:none;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23aaa' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:38px}
+.sel:focus{border-color:var(--ac)}
+
+/* ── Buttons ── */
+.btn-pri{width:100%;padding:14px;background:var(--ac);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit}
+.btn-pri:active{background:#8b4f10}
+.btn-sec{width:100%;padding:13px 14px;background:#fff;color:var(--tx);border:1px solid var(--bd);border-radius:10px;font-size:14px;font-weight:500;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.btn-sec:active{background:#f5f3f0}
+.btn-link{background:none;border:none;color:var(--ac);font-size:13px;font-weight:700;cursor:pointer;padding:4px 0;font-family:inherit;display:inline-flex;align-items:center;gap:3px}
+.btn-del{background:none;border:none;color:#ccc;font-size:20px;cursor:pointer;padding:0 4px;line-height:1;font-family:inherit;flex-shrink:0}
+.btn-del:active{color:#c0392b}
+.btn-ok{padding:9px 14px;background:var(--ac);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;flex-shrink:0}
+.btn-stack{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
+
+/* ── Stat ── */
+.stat-card{background:#fff;border:1px solid var(--bd);border-radius:12px;padding:20px;text-align:center;margin-bottom:14px}
+.stat-num{font-size:42px;font-weight:700}
+.stat-lbl{font-size:13px;color:var(--mu);margin-top:4px}
+
+/* ── Item card (inicio) ── */
+.item-card{background:#fff;border:1px solid var(--bd);border-radius:11px;padding:11px 13px;display:flex;align-items:center;gap:11px;margin-bottom:7px}
+.item-thumb{width:40px;height:40px;border-radius:8px;background:var(--acb);flex-shrink:0;display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:22px}
+.item-thumb img{width:100%;height:100%;object-fit:cover}
+.item-info{flex:1;min-width:0}
+.item-cat{font-size:11px;font-weight:700;color:var(--ac);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item-detail{font-size:13px;color:var(--tx);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item-del{background:none;border:none;color:#ddd;font-size:22px;cursor:pointer;padding:2px 4px;line-height:1;flex-shrink:0}
+.item-del:active{color:#c0392b}
+
+/* ── Empty ── */
+.empty{text-align:center;color:#ccc;padding:28px 20px;font-size:14px}
+.empty-icon{font-size:36px;margin-bottom:8px}
+
+/* ── Export bar ── */
+.exp-bar{background:var(--tx);color:#fff;padding:14px 16px;border-radius:12px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.exp-bar-title{font-size:14px;font-weight:700}
+.exp-bar-sub{font-size:11px;color:#999;margin-top:2px}
+.btn-exp{padding:10px 16px;background:#fff;color:var(--tx);border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;flex-shrink:0}
+.btn-exp:disabled{background:#555;color:#999;cursor:default}
+
+/* ── Toggle ── */
+.toggle-row{display:flex;align-items:center;gap:10px;padding:8px 0;cursor:pointer;user-select:none}
+.toggle{width:44px;height:26px;background:var(--bd);border-radius:13px;position:relative;transition:background .2s;flex-shrink:0}
+.toggle.on{background:var(--ac)}
+.toggle-knob{position:absolute;width:20px;height:20px;background:#fff;border-radius:50%;top:3px;left:3px;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle.on .toggle-knob{left:21px}
+.toggle-lbl{font-size:14px}
+
+/* ── Cascade tree ── */
+.cat-root-card{background:#fff;border:1px solid var(--bd);border-radius:12px;margin-bottom:10px;overflow:hidden}
+.cat-root-hdr{padding:13px 14px;display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
+.cat-root-hdr:active{background:#f8f6f3}
+.cat-expand-ico{color:var(--ac);font-size:12px;font-weight:900;transition:transform .2s;flex-shrink:0;width:14px}
+.cat-root-hdr.open .cat-expand-ico{transform:rotate(90deg)}
+.cat-root-name{flex:1;font-size:15px;font-weight:600}
+.cat-st-tag{font-size:10px;color:#aaa;font-style:italic}
+.cat-root-body{display:none;padding:0 14px 12px}
+.cat-root-hdr.open ~ .cat-root-body{display:block}
+.subcat-block{border-left:3px solid var(--ac);padding-left:12px;margin:10px 0 4px}
+.subcat-hdr{display:flex;align-items:center;gap:6px;padding:2px 0 4px}
+.subcat-name{flex:1;font-size:14px;font-weight:600}
+.tipo-list{padding-left:4px;margin:2px 0 6px}
+.tipo-item{display:flex;align-items:center;gap:6px;padding:3px 0}
+.tipo-dot{width:5px;height:5px;border-radius:50%;background:var(--bd);flex-shrink:0}
+.tipo-name{flex:1;font-size:13px}
+.inline-add{display:none;gap:6px;align-items:center;margin-top:6px;flex-wrap:nowrap}
+.inline-add.show{display:flex}
+.inline-add .inp-sm{flex:1;min-width:0}
+.add-row{margin-top:8px;padding-top:8px;border-top:1px dashed var(--bd)}
+.sep{border:none;border-top:1px solid var(--bd);margin:12px 0}
+
+/* ── Selector bar (nueva prenda) ── */
+.sel-bar{background:var(--acb);border-bottom:1px solid #e8d5b8;padding:10px 14px;display:flex;flex-direction:column;gap:8px}
+.sel-bar-row{display:flex;flex-direction:column;gap:3px}
+.sel-bar-lbl{font-size:11px;font-weight:700;color:var(--ac);text-transform:uppercase;letter-spacing:.4px}
+.sel-bar .sel{width:100%;padding:8px 30px 8px 10px;font-size:14px}
+.code-prev-row{display:flex;align-items:center;gap:8px;background:#fff;border-radius:8px;padding:7px 12px;margin-top:4px}
+.code-prev-lbl{font-size:11px;color:#aaa}
+.code-prev-val{font-size:16px;font-weight:700;color:var(--ac);font-family:monospace}
+
+/* ── Confirm inline ── */
+.confirm-ok{background:#f0f9f0;border:1px solid #b8e0b8;border-radius:9px;padding:10px 14px;font-size:14px;font-weight:600;color:#2d7a2d;display:flex;align-items:center;gap:8px;margin-bottom:14px}
+
+/* ── Foto ── */
+.foto-area{width:100%;border:2px dashed var(--bd);border-radius:10px;padding:22px;text-align:center;background:#fff;cursor:pointer}
+.foto-icon{font-size:30px;margin-bottom:6px;display:block}
+.foto-lbl{font-size:13px;color:#bbb}
+.foto-actions{display:flex;gap:8px;margin-top:8px}
+.btn-foto-act{flex:1;padding:9px;background:var(--bg);border:1px solid var(--bd);border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit}
+
+/* ── Qty ── */
+.qty-ctrl{display:flex;align-items:center;gap:12px}
+.qty-btn{width:42px;height:42px;border:1px solid var(--bd);border-radius:9px;background:#fff;font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:inherit;color:var(--tx)}
+.qty-btn:active{background:var(--bg)}
+.qty-num{font-size:20px;font-weight:700;min-width:32px;text-align:center}
+.qty-lbl{font-size:12px;color:#aaa}
+
+/* ── Grid 2 ── */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:calc(60px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%) translateY(20px);background:var(--tx);color:#fff;padding:11px 22px;border-radius:22px;font-size:14px;font-weight:600;opacity:0;transition:all .25s;pointer-events:none;white-space:nowrap;z-index:9999;max-width:90vw;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── Explicación (pantalla 0) ── */
+.ob-welcome{font-size:24px;font-weight:800;margin-bottom:4px;color:var(--tx)}
+.ob-sub{font-size:14px;color:var(--mu);line-height:1.5;margin-bottom:20px}
+.ob-nav-box{background:var(--acb);border-radius:14px;padding:16px;margin-bottom:22px;text-align:center}
+.ob-nav-title{font-size:12px;font-weight:800;color:var(--ac);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.ob-nav-main{font-size:16px;font-weight:700;color:#5a3510;margin-bottom:6px;line-height:1.4}
+.ob-nav-detail{font-size:14px;color:#7a5530;line-height:1.55;margin-bottom:12px}
+.ob-dots-row{display:flex;justify-content:center;gap:8px;margin-bottom:6px}
+.ob-dot-vis{height:10px;border-radius:5px}
+.ob-dot-vis.on{background:var(--ac);width:26px}
+.ob-dot-vis.off{background:#e0c8a8;width:10px}
+.ob-dots-labels{font-size:10px;color:#aaa;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.ob-step{display:flex;gap:14px;padding:16px 0;border-bottom:1px solid var(--bd)}
+.ob-step:last-of-type{border-bottom:none;padding-bottom:4px}
+.ob-icon{width:50px;height:50px;background:var(--acb);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0}
+.ob-num{font-size:11px;font-weight:800;color:var(--ac);text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px}
+.ob-step-title{font-size:16px;font-weight:800;margin-bottom:6px;color:var(--tx)}
+.ob-step-desc{font-size:14px;color:#444;line-height:1.65}
+.ob-step-desc strong{color:var(--tx)}
+.ob-warn{background:#fff3cd;border:1px solid #f0c040;border-radius:10px;padding:12px 14px;margin-top:10px;font-size:14px;color:#7a5000;line-height:1.6}
+</style>
+</head>
+<body>
+
+<div id="swipe-outer">
+  <div id="swipe-wrap">
+
+    <!-- ══ PANTALLA 0: EXPLICACIÓN ══ -->
+    <div class="swipe-screen" id="scr-explicacion">
+      <div class="s-hdr">
+        <div class="s-hdr-title">STILO <em>&</em> ELEGANCIA</div>
+        <div class="s-hdr-sub">Cómo usar la app</div>
+      </div>
+      <div class="sec" style="padding-bottom:28px">
+        <div class="ob-welcome">Bienvenida</div>
+        <p class="ob-sub">Leé esto con calma. Esta pantalla siempre está disponible — deslizá hacia acá cuando quieras consultarla.</p>
+
+        <div class="ob-nav-box">
+          <div class="ob-nav-title">Cómo pasar de pantalla a pantalla</div>
+          <div class="ob-nav-main">Deslizá el dedo hacia la izquierda o la derecha</div>
+          <div class="ob-nav-detail">Como si pasaras una página de un libro.<br>También podés tocar los cuatro puntitos de abajo.</div>
+          <div class="ob-dots-row">
+            <div class="ob-dot-vis on"></div>
+            <div class="ob-dot-vis off"></div>
+            <div class="ob-dot-vis off"></div>
+            <div class="ob-dot-vis off"></div>
+          </div>
+          <div class="ob-dots-labels">EXPLICACIÓN &nbsp;·&nbsp; INICIO &nbsp;·&nbsp; CATEGORÍAS &nbsp;·&nbsp; NUEVA PRENDA</div>
+        </div>
+
+        <div class="ob-step">
+          <div class="ob-icon">🏠</div>
+          <div>
+            <div class="ob-num">Paso 1 — Pantalla de INICIO</div>
+            <div class="ob-step-title">La segunda pantalla (deslizá una vez)</div>
+            <div class="ob-step-desc">
+              Acá podés ver <strong>cuántas prendas cargaste</strong> y las últimas que se ingresaron.<br><br>
+              Cuando termines de cargar todo el lote, desde acá vas a presionar el botón <strong>EXPORTAR ZIP</strong> para mandar el archivo a Malco.
+            </div>
+          </div>
+        </div>
+
+        <div class="ob-step">
+          <div class="ob-icon">📁</div>
+          <div>
+            <div class="ob-num">Paso 2 — Pantalla de CATEGORÍAS</div>
+            <div class="ob-step-title">Primero creá los tipos de ropa</div>
+            <div class="ob-step-desc">
+              Antes de empezar a cargar prendas, tenés que crear las categorías.<br><br>
+              Ejemplo: <strong>VESTIDOS → QUINCE → CORSET</strong><br><br>
+              Esto se hace <strong>una sola vez</strong> antes de empezar. Después no hace falta volver acá a menos que quieras agregar algo nuevo.
+            </div>
+          </div>
+        </div>
+
+        <div class="ob-step">
+          <div class="ob-icon">📷</div>
+          <div>
+            <div class="ob-num">Paso 3 — NUEVA PRENDA (la última pantalla)</div>
+            <div class="ob-step-title">Cargá las prendas una por una</div>
+            <div class="ob-step-desc">
+              En la parte <strong>de arriba de la pantalla</strong> elegís qué tipo de prenda vas a cargar.<br><br>
+              Después completás: <strong>foto, talle y precios</strong>.<br><br>
+              Tocás <strong>AGREGAR PRENDA</strong> y ya está. El formulario se limpia solo para que puedas seguir con la siguiente prenda sin perder tiempo.
+            </div>
+          </div>
+        </div>
+
+        <div class="ob-step">
+          <div class="ob-icon">📤</div>
+          <div>
+            <div class="ob-num">Paso 4 — EXPORTAR y mandar a Malco</div>
+            <div class="ob-step-title">Cuando terminés de cargar todo</div>
+            <div class="ob-step-desc">
+              1. Volvé a la pantalla de <strong>INICIO</strong> (deslizá a la derecha).<br>
+              2. Tocá el botón <strong>EXPORTAR ZIP</strong>.<br>
+              3. Se descarga un archivo en el celular.<br>
+              4. Mandá ese archivo por <strong>WhatsApp a Malco</strong>.
+            </div>
+            <div class="ob-warn">
+              ⚠️ <strong>Importante:</strong> Cuando exportás, las prendas se borran automáticamente de la app. No te asustes — quedaron guardadas en el archivo que mandaste por WhatsApp. La app queda vacía lista para el próximo lote.
+            </div>
+          </div>
+        </div>
+
+        <div style="height:16px"></div>
+        <button class="btn-pri" onclick="goScreen(1)">Ir al inicio →</button>
+      </div>
+    </div>
+
+    <!-- ══ PANTALLA 1: INICIO ══ -->
+    <div class="swipe-screen" id="scr-inicio">
+      <div class="s-hdr">
+        <div class="s-hdr-title">STILO <em>&</em> ELEGANCIA</div>
+        <div class="s-hdr-sub">Carga de inventario · Balcarce</div>
+      </div>
+      <div class="sec">
+        <div class="stat-card">
+          <div id="ini-count" class="stat-num">0</div>
+          <div class="stat-lbl">prendas cargadas</div>
+        </div>
+        <div class="btn-stack">
+          <button class="btn-pri" onclick="goScreen(3)">+ Nueva prenda</button>
+          <button class="btn-sec" onclick="goScreen(2)">
+            <span>Administrar categorías</span>
+            <span id="ini-cats-chip" class="chip">0</span>
+          </button>
+        </div>
+        <div class="sec-lbl">Últimas cargadas</div>
+        <div id="ini-list"></div>
+        <div id="ini-empty" class="empty" style="display:none">
+          <div class="empty-icon">🧥</div>
+          Todavía no cargaste prendas.<br>Deslizá a la izquierda para empezar.
+        </div>
+        <div style="margin-top:20px">
+          <div class="exp-bar">
+            <div>
+              <div class="exp-bar-title">Exportar ZIP</div>
+              <div id="exp-sub" class="exp-bar-sub">Excel + fotos · para enviar por WhatsApp</div>
+            </div>
+            <button id="btn-exp" class="btn-exp" onclick="exportarZIP()" disabled>⬇ Exportar</button>
+          </div>
+          <div style="font-size:11px;color:#bbb;text-align:center;margin-top:7px;line-height:1.6">
+            Al exportar, las prendas se borran de la app<br>para empezar el próximo lote.<br>
+            Necesitás conexión a internet.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PANTALLA 2: CATEGORÍAS ══ -->
+    <div class="swipe-screen" id="scr-categorias">
+      <div class="s-hdr">
+        <div class="s-hdr-title">Categorías</div>
+        <div class="s-hdr-sub">Tocá una categoría para expandirla</div>
+      </div>
+      <div class="sec">
+        <div class="sec-lbl">Categorías creadas</div>
+        <div id="cats-tree"></div>
+        <div id="cats-empty" class="empty" style="display:none">
+          <div class="empty-icon">📁</div>
+          Todavía no creaste ninguna.<br>Completá el formulario de abajo para crear la primera.
+        </div>
+        <hr class="sep">
+        <div class="sec-lbl" style="margin-bottom:12px">Nueva categoría</div>
+        <div class="card">
+          <div class="field">
+            <label>Nombre</label>
+            <input type="text" id="cat-nombre" class="inp" placeholder="Ej: VESTIDOS, BIJOUTERIE..." oninput="onCatNombreInput()" autocomplete="off" autocapitalize="characters">
+          </div>
+          <div style="display:flex;gap:12px;align-items:flex-end;margin-bottom:14px">
+            <div class="field" style="margin:0;flex:1">
+              <label>Prefijo del código</label>
+              <input type="text" id="cat-prefijo" class="inp inp-prefix" placeholder="V" maxlength="4" oninput="this.value=this.value.toUpperCase()" autocomplete="off">
+            </div>
+            <div class="field" style="margin:0">
+              <label>Sin talle</label>
+              <div class="toggle-row" style="padding:10px 0" onclick="toggleSinTalle()">
+                <div id="cat-toggle" class="toggle"><div class="toggle-knob"></div></div>
+                <div class="toggle-lbl" id="cat-toggle-lbl" style="font-size:13px">No</div>
+              </div>
+            </div>
+          </div>
+          <div class="help" style="margin-bottom:14px">El prefijo identifica la categoría en el código (ej: V, Q, B). Debe ser único.</div>
+          <button class="btn-pri" onclick="guardarCat()">Guardar categoría</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PANTALLA 3: NUEVA PRENDA ══ -->
+    <div class="swipe-screen" id="scr-nueva">
+      <div class="s-hdr">
+        <div class="s-hdr-title">Nueva prenda</div>
+        <div class="s-hdr-sub">Los selectores quedan fijos hasta que los cambies</div>
+      </div>
+      <div class="sel-bar" id="sel-bar">
+        <div id="sel-no-cats" style="font-size:13px;color:#8b5020;display:none">
+          Primero creá categorías — deslizá a la izquierda para administrarlas.
+        </div>
+        <div id="sel-fields">
+          <div class="sel-bar-row">
+            <span class="sel-bar-lbl">Categoría</span>
+            <select id="n-cat" class="sel" onchange="onNCatChange()">
+              <option value="">— Elegir —</option>
+            </select>
+          </div>
+          <div id="n-subcat-row" class="sel-bar-row" style="display:none">
+            <span class="sel-bar-lbl">Subcategoría</span>
+            <select id="n-subcat" class="sel" onchange="onNSubcatChange()">
+              <option value="">— Elegir —</option>
+            </select>
+          </div>
+          <div id="n-tipo-row" class="sel-bar-row" style="display:none">
+            <span class="sel-bar-lbl">Tipo de pieza</span>
+            <select id="n-tipo" class="sel" onchange="updateNCodePrev()">
+              <option value="">— Elegir tipo —</option>
+            </select>
+          </div>
+          <div id="n-code-prev" class="code-prev-row" style="display:none">
+            <span class="code-prev-lbl">Código:</span>
+            <span id="n-code-val" class="code-prev-val">—</span>
+          </div>
+        </div>
+      </div>
+      <div class="sec">
+        <div id="n-confirm" style="display:none" class="confirm-ok">
+          ✓ Prenda agregada
+        </div>
+        <div id="n-no-cat-msg" class="empty" style="display:none">
+          <div class="empty-icon">👆</div>
+          Elegí una categoría arriba para empezar.
+        </div>
+        <div id="n-form" style="display:none">
+          <div class="field">
+            <label>Foto</label>
+            <div id="n-foto-area" class="foto-area" onclick="document.getElementById('n-foto-inp').click()">
+              <span class="foto-icon">📷</span>
+              <div class="foto-lbl">Tocá para abrir la cámara</div>
+            </div>
+            <input type="file" id="n-foto-inp" accept="image/*" capture="environment" style="display:none" onchange="onFotoChange(this)">
+            <div id="n-foto-actions" class="foto-actions" style="display:none">
+              <button class="btn-foto-act" onclick="document.getElementById('n-foto-inp').click()">Cambiar foto</button>
+              <button class="btn-foto-act" onclick="quitarFoto()">Quitar foto</button>
+            </div>
+            <div class="help">Si no podés en este momento, podés dejarla sin foto.</div>
+          </div>
+          <div id="n-talle-field" class="field">
+            <label>Talle</label>
+            <input type="text" id="n-talle" class="inp" placeholder="Ej: 42, M, XL, ÚNICO" oninput="this.value=this.value.toUpperCase()" autocomplete="off" autocapitalize="characters">
+            <div class="help">Tal como dice la etiqueta. Sin talle → escribí ÚNICO.</div>
+          </div>
+          <div class="field">
+            <label>Cantidad</label>
+            <div class="qty-ctrl">
+              <button class="qty-btn" onclick="cambiarQty(-1)">−</button>
+              <span id="n-qty" class="qty-num">1</span>
+              <button class="qty-btn" onclick="cambiarQty(1)">+</button>
+              <span class="qty-lbl">unidades idénticas</span>
+            </div>
+          </div>
+          <div class="grid2">
+            <div class="field">
+              <label>Alquiler $</label>
+              <input type="text" id="n-palq" class="inp" placeholder="0" inputmode="numeric" oninput="fmtInput(this)">
+            </div>
+            <div class="field">
+              <label>Venta $</label>
+              <input type="text" id="n-pvta" class="inp" placeholder="0" inputmode="numeric" oninput="fmtInput(this)">
+            </div>
+          </div>
+          <div class="field">
+            <label>Reposición $</label>
+            <input type="text" id="n-prep" class="inp" placeholder="0" inputmode="numeric" oninput="fmtInput(this)">
+            <div class="help">Cuánto costaría reponer si se daña. Dejalo en 0 si no sabés.</div>
+          </div>
+          <button class="btn-pri" onclick="agregarPrenda()">+ Agregar prenda</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /swipe-wrap -->
+</div><!-- /swipe-outer -->
+
+<!-- ════ NAV DOTS ════ -->
+<div id="nav-dots">
+  <div class="dot" onclick="goScreen(0)" title="Explicación"></div>
+  <div class="dot active" onclick="goScreen(1)" title="Inicio"></div>
+  <div class="dot" onclick="goScreen(2)" title="Categorías"></div>
+  <div class="dot" onclick="goScreen(3)" title="Nueva prenda"></div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+// ─────────────────────────────────────────────
+// DATOS
+// ─────────────────────────────────────────────
+const DB = {
+  getCats:   ()=>{ try{ return migrateCats(JSON.parse(localStorage.getItem('inv_cats'))||[]); }catch{ return []; } },
+  saveCats:  d=>localStorage.setItem('inv_cats', JSON.stringify(d)),
+  getItems:  ()=>{ try{ return JSON.parse(localStorage.getItem('inv_items'))||[]; }catch{ return []; } },
+  saveItems: d=>localStorage.setItem('inv_items', JSON.stringify(d)),
+  getImg:    id=>localStorage.getItem('inv_img_'+id)||null,
+  saveImg:   (id,b64)=>{ try{ localStorage.setItem('inv_img_'+id, b64); }catch(e){ console.warn('img save fail:', e); } },
+  delImg:    id=>localStorage.removeItem('inv_img_'+id),
+  nextFotoId:()=>{
+    const n=(parseInt(localStorage.getItem('inv_foto_n')||'0')+1);
+    localStorage.setItem('inv_foto_n',String(n));
+    return 'foto_'+String(n).padStart(3,'0');
+  }
+};
+
+function migrateCats(cats){
+  return cats.map(cat=>({
+    ...cat,
+    subcats:(cat.subcats||[]).map(sub=>({
+      ...sub,
+      prefijo:sub.prefijo||'',
+      tipos:(sub.tipos||[]).map(t=>
+        typeof t==='string' ? {id:uid(),nombre:t,prefijo:''} : t
+      )
+    }))
+  }));
+}
+
+// ─────────────────────────────────────────────
+// ESTADO
+// ─────────────────────────────────────────────
+let _currentScreen  = 1;
+let _sinTalleToggle = false;
+let _fotoB64        = null;
+let _qty            = 1;
+let _openCatId      = null;
+let _openFormId     = null;
+let _openFocusId    = null;
+let _confirmTimer   = null;
+
+// ─────────────────────────────────────────────
+// UTILS
+// ─────────────────────────────────────────────
+function uid(){ return Math.random().toString(36).slice(2)+Date.now().toString(36); }
+function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmt(n){ return n ? '$'+Number(n).toLocaleString('es-AR') : '—'; }
+
+function autoPrefix(srcValue, targetId){
+  const el=document.getElementById(targetId);
+  if(!el) return;
+  const words=srcValue.trim().split(/[\s\/\-]+/).filter(Boolean);
+  el.value=words.map(w=>w[0]||'').join('').toUpperCase().slice(0,4);
+}
+
+function fmtInput(inp){
+  const digits=inp.value.replace(/\D/g,'');
+  if(!digits){ inp.value=''; return; }
+  inp.value=parseInt(digits).toString().replace(/\B(?=(\d{3})+(?!\d))/g,'.');
+}
+
+function parsePrice(id){
+  const val=(document.getElementById(id).value||'').replace(/\./g,'');
+  return parseInt(val)||0;
+}
+
+// ─────────────────────────────────────────────
+// TOAST
+// ─────────────────────────────────────────────
+let _toastTimer=null;
+function toast(msg,dur=2500){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer=setTimeout(()=>t.classList.remove('show'),dur);
+}
+
+// ─────────────────────────────────────────────
+// NAVEGACIÓN Y SWIPE
+// ─────────────────────────────────────────────
+function goScreen(n){
+  _currentScreen=Math.max(0,Math.min(3,n));
+  document.getElementById('swipe-wrap').style.transform=
+    `translateX(calc(-${_currentScreen} * 25%))`;
+  document.querySelectorAll('.dot').forEach((d,i)=>d.classList.toggle('active',i===_currentScreen));
+  if(_currentScreen===1) renderInicio();
+  if(_currentScreen===2) renderCategorias();
+  if(_currentScreen===3) renderNueva();
+}
+
+(function initSwipe(){
+  const outer=document.getElementById('swipe-outer');
+  let sx=0,sy=0,swiping=false,blocked=false;
+  outer.addEventListener('touchstart',e=>{
+    sx=e.touches[0].clientX; sy=e.touches[0].clientY;
+    swiping=false; blocked=false;
+  },{passive:true});
+  outer.addEventListener('touchmove',e=>{
+    if(blocked) return;
+    const dx=e.touches[0].clientX-sx, dy=e.touches[0].clientY-sy;
+    if(!swiping&&(Math.abs(dx)>8||Math.abs(dy)>8)){
+      if(Math.abs(dx)>Math.abs(dy)*1.4) swiping=true;
+      else { blocked=true; return; }
+    }
+    if(swiping) e.preventDefault();
+  },{passive:false});
+  outer.addEventListener('touchend',e=>{
+    if(!swiping) return;
+    const dx=e.changedTouches[0].clientX-sx;
+    if(Math.abs(dx)>45){
+      if(dx<0) goScreen(_currentScreen+1);
+      else      goScreen(_currentScreen-1);
+    }
+  },{passive:true});
+})();
+
+// ─────────────────────────────────────────────
+// INICIO
+// ─────────────────────────────────────────────
+function renderInicio(){
+  const items=DB.getItems();
+  const cats=DB.getCats();
+  document.getElementById('ini-count').textContent=items.length;
+  document.getElementById('ini-cats-chip').textContent=cats.length;
+  const expBtn=document.getElementById('btn-exp');
+  expBtn.disabled=items.length===0;
+  const conFoto=items.filter(x=>x.fotoId).length;
+  document.getElementById('exp-sub').textContent=
+    `Excel + ${conFoto} foto${conFoto!==1?'s':''} · para enviar por WhatsApp`;
+  const list=document.getElementById('ini-list');
+  const empty=document.getElementById('ini-empty');
+  if(!items.length){
+    list.innerHTML=''; empty.style.display='block';
+  } else {
+    empty.style.display='none';
+    list.innerHTML=items.slice(-5).reverse().map(item=>{
+      const img=item.fotoId ? DB.getImg(item.fotoId) : null;
+      const thumb=img ? `<img src="${img}">` : '🧥';
+      const talleStr=item.sinTalle ? 'Sin talle' : 'T '+esc(item.talle);
+      const parts=[esc(item.catNombre),item.subcatNombre&&esc(item.subcatNombre),item.tipoNombre&&esc(item.tipoNombre)].filter(Boolean);
+      const precio=item.palq ? 'Alq '+fmt(item.palq) : (item.pvta ? 'Vta '+fmt(item.pvta) : 'Sin precio');
+      const qty=item.qty>1 ? item.qty+'u · ' : '';
+      return `<div class="item-card">
+        <div class="item-thumb">${thumb}</div>
+        <div class="item-info">
+          <div class="item-cat">${parts.join(' › ')}</div>
+          <div class="item-detail">${talleStr} · ${qty}${precio}</div>
+        </div>
+        <button class="item-del" onclick="eliminarItem('${item.id}')">×</button>
+      </div>`;
+    }).join('');
+  }
+}
+
+function eliminarItem(id){
+  if(!confirm('¿Eliminar esta prenda?')) return;
+  const items=DB.getItems();
+  const item=items.find(x=>x.id===id);
+  if(item&&item.fotoId) DB.delImg(item.fotoId);
+  DB.saveItems(items.filter(x=>x.id!==id));
+  renderInicio();
+}
+
+// ─────────────────────────────────────────────
+// CATEGORÍAS
+// ─────────────────────────────────────────────
+function renderCategorias(){
+  const cats=DB.getCats();
+  const items=DB.getItems();
+  const tree=document.getElementById('cats-tree');
+  const empty=document.getElementById('cats-empty');
+  if(!cats.length){
+    tree.innerHTML=''; empty.style.display='block';
+  } else {
+    empty.style.display='none';
+    tree.innerHTML=cats.map(cat=>{
+      const catCount=items.filter(x=>x.catId===cat.id).length;
+      const stTag=cat.sinTalle ? `<span class="cat-st-tag">sin talle</span>` : '';
+      const subcatsHtml=(cat.subcats||[]).map(sub=>{
+        const tiposHtml=(sub.tipos||[]).map(t=>`
+          <div class="tipo-item">
+            <div class="tipo-dot"></div>
+            <span class="tipo-name">${esc(t.nombre)}</span>
+            <span class="chip" style="font-size:9px">${esc(t.prefijo)||'—'}</span>
+            <button class="btn-del" onclick="event.stopPropagation();eliminarTipo('${cat.id}','${sub.id}','${t.id}')">×</button>
+          </div>`).join('');
+        return `<div class="subcat-block">
+          <div class="subcat-hdr">
+            <span class="subcat-name">${esc(sub.nombre)}</span>
+            <span class="chip" style="font-size:9px">${esc(sub.prefijo)||'—'}</span>
+            <button class="btn-del" onclick="event.stopPropagation();eliminarSubcat('${cat.id}','${sub.id}')">×</button>
+          </div>
+          <div class="tipo-list">${tiposHtml||'<div style="font-size:12px;color:#ccc;padding:2px 0">Sin tipos todavía</div>'}</div>
+          <button class="btn-link" style="font-size:12px" onclick="event.stopPropagation();toggleInline('add-tipo-${sub.id}','tipo-n-${sub.id}')">＋ Tipo de pieza</button>
+          <div class="inline-add" id="add-tipo-${sub.id}">
+            <input type="text" class="inp inp-sm" placeholder="Nombre" id="tipo-n-${sub.id}"
+              oninput="this.value=this.value.toUpperCase();autoPrefix(this.value,'tipo-p-${sub.id}')"
+              autocomplete="off" autocapitalize="characters" style="flex:1">
+            <input type="text" class="inp inp-prefix-sm" placeholder="P" id="tipo-p-${sub.id}"
+              maxlength="4" oninput="this.value=this.value.toUpperCase()" autocomplete="off">
+            <button class="btn-ok" onclick="event.stopPropagation();guardarTipo('${cat.id}','${sub.id}')">OK</button>
+          </div>
+        </div>`;
+      }).join('');
+      return `<div class="cat-root-card">
+        <div class="cat-root-hdr" data-cat-id="${cat.id}" onclick="toggleCatNode(this)">
+          <span class="cat-expand-ico">▶</span>
+          <span class="cat-root-name">${esc(cat.nombre)}</span>
+          ${stTag}
+          <span class="chip">${esc(cat.prefijo)}</span>
+          <button class="btn-del" onclick="event.stopPropagation();eliminarCat('${cat.id}')">×</button>
+        </div>
+        <div class="cat-root-body">
+          <div style="font-size:11px;color:#aaa;margin-bottom:10px">${catCount} prenda${catCount!==1?'s':''} cargadas en este lote</div>
+          ${subcatsHtml}
+          <div class="add-row">
+            <button class="btn-link" onclick="toggleInline('add-subcat-${cat.id}','subcat-n-${cat.id}')">＋ Subcategoría</button>
+            <div class="inline-add" id="add-subcat-${cat.id}">
+              <input type="text" class="inp inp-sm" placeholder="Nombre" id="subcat-n-${cat.id}"
+                oninput="this.value=this.value.toUpperCase();autoPrefix(this.value,'subcat-p-${cat.id}')"
+                autocomplete="off" autocapitalize="characters" style="flex:1">
+              <input type="text" class="inp inp-prefix-sm" placeholder="P" id="subcat-p-${cat.id}"
+                maxlength="4" oninput="this.value=this.value.toUpperCase()" autocomplete="off">
+              <button class="btn-ok" onclick="guardarSubcat('${cat.id}')">OK</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  document.getElementById('cat-nombre').value='';
+  document.getElementById('cat-prefijo').value='';
+  _sinTalleToggle=false;
+  document.getElementById('cat-toggle').classList.remove('on');
+  document.getElementById('cat-toggle-lbl').textContent='No';
+  restoreOpenState();
+}
+
+function restoreOpenState(){
+  if(!_openCatId) return;
+  const hdr=document.querySelector(`.cat-root-hdr[data-cat-id="${_openCatId}"]`);
+  if(hdr) hdr.classList.add('open');
+  if(_openFormId){
+    const form=document.getElementById(_openFormId);
+    if(form){
+      form.classList.add('show');
+      if(_openFocusId){
+        const inp=document.getElementById(_openFocusId);
+        if(inp) setTimeout(()=>inp.focus(),80);
+      }
+    }
+  }
+}
+
+function toggleCatNode(hdr){ hdr.classList.toggle('open'); }
+
+function toggleInline(containerId,focusId){
+  const el=document.getElementById(containerId);
+  if(!el) return;
+  el.classList.toggle('show');
+  if(el.classList.contains('show')){
+    const inp=document.getElementById(focusId);
+    if(inp) setTimeout(()=>inp.focus(),80);
+  }
+}
+
+function onCatNombreInput(){
+  const inp=document.getElementById('cat-nombre');
+  inp.value=inp.value.toUpperCase();
+  autoPrefix(inp.value,'cat-prefijo');
+}
+
+function toggleSinTalle(){
+  _sinTalleToggle=!_sinTalleToggle;
+  document.getElementById('cat-toggle').classList.toggle('on',_sinTalleToggle);
+  document.getElementById('cat-toggle-lbl').textContent=_sinTalleToggle?'Sí':'No';
+}
+
+function guardarCat(){
+  const nombre=document.getElementById('cat-nombre').value.trim();
+  const prefijo=document.getElementById('cat-prefijo').value.trim().toUpperCase();
+  if(!nombre){ toast('Escribí el nombre de la categoría.'); return; }
+  if(!prefijo){ toast('Escribí el prefijo del código.'); return; }
+  const cats=DB.getCats();
+  if(cats.some(c=>c.nombre.toLowerCase()===nombre.toLowerCase())){ toast('Ya existe esa categoría.'); return; }
+  if(cats.some(c=>c.prefijo.toUpperCase()===prefijo)){ toast('Ese prefijo ya está en uso.'); return; }
+  const newId=uid();
+  cats.push({id:newId,nombre,prefijo,sinTalle:_sinTalleToggle,subcats:[]});
+  DB.saveCats(cats);
+  _openCatId=newId; _openFormId='add-subcat-'+newId; _openFocusId='subcat-n-'+newId;
+  toast('✓ Categoría "'+nombre+'" guardada.');
+  renderCategorias(); refreshNSelectors();
+}
+
+function guardarSubcat(catId){
+  const nombre=document.getElementById('subcat-n-'+catId).value.trim();
+  const prefijo=document.getElementById('subcat-p-'+catId).value.trim().toUpperCase();
+  if(!nombre){ toast('Escribí el nombre de la subcategoría.'); return; }
+  const cats=DB.getCats();
+  const cat=cats.find(c=>c.id===catId);
+  if(!cat) return;
+  if(cat.subcats.some(s=>s.nombre.toLowerCase()===nombre.toLowerCase())){ toast('Ya existe esa subcategoría.'); return; }
+  cat.subcats.push({id:uid(),nombre,prefijo:prefijo||'',tipos:[]});
+  DB.saveCats(cats);
+  _openCatId=catId; _openFormId='add-subcat-'+catId; _openFocusId='subcat-n-'+catId;
+  toast('✓ Subcategoría "'+nombre+'" creada.');
+  renderCategorias(); refreshNSelectors();
+}
+
+function guardarTipo(catId,subcatId){
+  const nombre=document.getElementById('tipo-n-'+subcatId).value.trim();
+  const prefijo=document.getElementById('tipo-p-'+subcatId).value.trim().toUpperCase();
+  if(!nombre){ toast('Escribí el nombre del tipo.'); return; }
+  const cats=DB.getCats();
+  const cat=cats.find(c=>c.id===catId);
+  const sub=cat&&cat.subcats.find(s=>s.id===subcatId);
+  if(!sub) return;
+  if(sub.tipos.some(t=>t.nombre.toLowerCase()===nombre.toLowerCase())){ toast('Ya existe ese tipo.'); return; }
+  sub.tipos.push({id:uid(),nombre,prefijo:prefijo||''});
+  DB.saveCats(cats);
+  _openCatId=catId; _openFormId='add-tipo-'+subcatId; _openFocusId='tipo-n-'+subcatId;
+  toast('✓ Tipo "'+nombre+'" creado.');
+  renderCategorias(); refreshNSelectors();
+}
+
+function eliminarCat(catId){
+  if(!confirm('¿Eliminar esta categoría con todas sus subcategorías y tipos?')) return;
+  _openCatId=null; _openFormId=null; _openFocusId=null;
+  DB.saveCats(DB.getCats().filter(c=>c.id!==catId));
+  renderCategorias(); refreshNSelectors();
+}
+
+function eliminarSubcat(catId,subcatId){
+  if(!confirm('¿Eliminar esta subcategoría y sus tipos?')) return;
+  _openCatId=catId; _openFormId=null; _openFocusId=null;
+  const cats=DB.getCats(); const cat=cats.find(c=>c.id===catId);
+  if(cat) cat.subcats=cat.subcats.filter(s=>s.id!==subcatId);
+  DB.saveCats(cats); renderCategorias(); refreshNSelectors();
+}
+
+function eliminarTipo(catId,subcatId,tipoId){
+  if(!confirm('¿Eliminar este tipo de pieza?')) return;
+  _openCatId=catId; _openFormId=null; _openFocusId=null;
+  const cats=DB.getCats(); const cat=cats.find(c=>c.id===catId);
+  const sub=cat&&cat.subcats.find(s=>s.id===subcatId);
+  if(sub) sub.tipos=sub.tipos.filter(t=>t.id!==tipoId);
+  DB.saveCats(cats); renderCategorias(); refreshNSelectors();
+}
+
+// ─────────────────────────────────────────────
+// NUEVA PRENDA
+// ─────────────────────────────────────────────
+function renderNueva(){
+  document.getElementById('n-confirm').style.display='none';
+  clearTimeout(_confirmTimer);
+  refreshNSelectors();
+}
+
+function refreshNSelectors(){
+  const cats=DB.getCats();
+  const noCats=document.getElementById('sel-no-cats');
+  const selFields=document.getElementById('sel-fields');
+  if(!cats.length){
+    noCats.style.display='block'; selFields.style.display='none';
+    document.getElementById('n-form').style.display='none';
+    document.getElementById('n-no-cat-msg').style.display='none';
+    return;
+  }
+  noCats.style.display='none'; selFields.style.display='block';
+  const catSel=document.getElementById('n-cat');
+  const prevCatId=catSel.value;
+  catSel.innerHTML='<option value="">— Elegir —</option>'+
+    cats.map(c=>`<option value="${c.id}">${esc(c.nombre)}</option>`).join('');
+  if(prevCatId&&cats.find(c=>c.id===prevCatId)) catSel.value=prevCatId;
+  onNCatChange(true);
+}
+
+function onNCatChange(restore=false){
+  const catId=document.getElementById('n-cat').value;
+  const cats=DB.getCats();
+  const cat=cats.find(c=>c.id===catId);
+  const subcatRow=document.getElementById('n-subcat-row');
+  const tipoRow=document.getElementById('n-tipo-row');
+  const nForm=document.getElementById('n-form');
+  const nNoCat=document.getElementById('n-no-cat-msg');
+  if(!cat){
+    subcatRow.style.display='none'; tipoRow.style.display='none';
+    document.getElementById('n-code-prev').style.display='none';
+    nForm.style.display='none'; nNoCat.style.display='block';
+    return;
+  }
+  nNoCat.style.display='none'; nForm.style.display='block';
+  document.getElementById('n-talle-field').style.display=cat.sinTalle?'none':'block';
+  if(cat.subcats&&cat.subcats.length){
+    subcatRow.style.display='flex';
+    const subcatSel=document.getElementById('n-subcat');
+    const prevSubcat=subcatSel.value;
+    subcatSel.innerHTML='<option value="">— Elegir —</option>'+
+      cat.subcats.map(s=>`<option value="${s.id}">${esc(s.nombre)}</option>`).join('');
+    if(restore&&prevSubcat&&cat.subcats.find(s=>s.id===prevSubcat)) subcatSel.value=prevSubcat;
+    onNSubcatChange(restore);
+  } else {
+    subcatRow.style.display='none'; tipoRow.style.display='none';
+  }
+  updateNCodePrev();
+}
+
+function onNSubcatChange(restore=false){
+  const catId=document.getElementById('n-cat').value;
+  const subcatId=document.getElementById('n-subcat').value;
+  const cats=DB.getCats();
+  const cat=cats.find(c=>c.id===catId);
+  const sub=cat&&cat.subcats.find(s=>s.id===subcatId);
+  const tipoRow=document.getElementById('n-tipo-row');
+  if(sub&&sub.tipos&&sub.tipos.length){
+    tipoRow.style.display='flex';
+    const tipoSel=document.getElementById('n-tipo');
+    const prevTipo=tipoSel.value;
+    tipoSel.innerHTML='<option value="">— Elegir tipo —</option>'+
+      sub.tipos.map(t=>`<option value="${t.id}">${esc(t.nombre)}</option>`).join('');
+    if(restore&&prevTipo&&sub.tipos.find(t=>t.id===prevTipo)) tipoSel.value=prevTipo;
+  } else {
+    tipoRow.style.display='none';
+  }
+  updateNCodePrev();
+}
+
+function updateNCodePrev(){
+  const catId=document.getElementById('n-cat').value;
+  const subcatId=document.getElementById('n-subcat').value;
+  const tipoId=document.getElementById('n-tipo').value;
+  const cats=DB.getCats();
+  const cat=cats.find(c=>c.id===catId);
+  if(!cat){ document.getElementById('n-code-prev').style.display='none'; return; }
+  const sub=subcatId&&cat.subcats.find(s=>s.id===subcatId);
+  const tipo=tipoId&&sub&&sub.tipos.find(t=>t.id===tipoId);
+  const parts=[cat.prefijo,sub&&sub.prefijo,tipo&&tipo.prefijo].filter(Boolean);
+  document.getElementById('n-code-prev').style.display='flex';
+  document.getElementById('n-code-val').textContent=(parts.join('-')||cat.prefijo)+'-####';
+}
+
+function agregarPrenda(){
+  const catId=document.getElementById('n-cat').value;
+  if(!catId){ toast('Elegí una categoría arriba.'); return; }
+  const cats=DB.getCats();
+  const cat=cats.find(c=>c.id===catId);
+  if(!cat.sinTalle){
+    const talle=document.getElementById('n-talle').value.trim();
+    if(!talle){ toast('Ingresá el talle.'); return; }
+  }
+  const talle=cat.sinTalle ? 'U' : document.getElementById('n-talle').value.trim().toUpperCase();
+  const subcatId=document.getElementById('n-subcat').value;
+  const tipoId=document.getElementById('n-tipo').value;
+  const sub=subcatId&&cat.subcats.find(s=>s.id===subcatId);
+  const tipo=tipoId&&sub&&sub.tipos.find(t=>t.id===tipoId);
+  const parts=[cat.prefijo,sub&&sub.prefijo,tipo&&tipo.prefijo].filter(Boolean);
+  const prefijo=parts.join('-')||cat.prefijo;
+  const palq=parsePrice('n-palq');
+  const pvta=parsePrice('n-pvta');
+  const prep=parsePrice('n-prep');
+  const fotoId=_fotoB64 ? DB.nextFotoId() : null;
+  if(fotoId) DB.saveImg(fotoId,_fotoB64);
+  const item={
+    id:uid(),
+    catId:cat.id,catNombre:cat.nombre,catPrefijo:cat.prefijo,
+    subcatId:      sub  ? sub.id       : null,
+    subcatNombre:  sub  ? sub.nombre   : null,
+    subcatPrefijo: sub  ? sub.prefijo  : '',
+    tipoId:        tipo ? tipo.id      : null,
+    tipoNombre:    tipo ? tipo.nombre  : null,
+    tipoPrefijo:   tipo ? tipo.prefijo : '',
+    prefijo,sinTalle:cat.sinTalle,
+    talle,qty:_qty,palq,pvta,prep,fotoId,
+    fecha:new Date().toLocaleDateString('es-AR')
+  };
+  DB.saveItems([...DB.getItems(),item]);
+  const conf=document.getElementById('n-confirm');
+  conf.style.display='flex';
+  clearTimeout(_confirmTimer);
+  _confirmTimer=setTimeout(()=>{ conf.style.display='none'; },1800);
+  resetNForm();
+  document.getElementById('scr-nueva').scrollTo(0,0);
+}
+
+function resetNForm(){
+  _fotoB64=null; _qty=1;
+  const area=document.getElementById('n-foto-area');
+  area.innerHTML='<span class="foto-icon">📷</span><div class="foto-lbl">Tocá para abrir la cámara</div>';
+  area.onclick=()=>document.getElementById('n-foto-inp').click();
+  document.getElementById('n-foto-actions').style.display='none';
+  document.getElementById('n-foto-inp').value='';
+  const talleInp=document.getElementById('n-talle');
+  if(talleInp) talleInp.value='';
+  document.getElementById('n-qty').textContent='1';
+  document.getElementById('n-palq').value='';
+  document.getElementById('n-pvta').value='';
+  document.getElementById('n-prep').value='';
+}
+
+function onFotoChange(input){
+  const file=input.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const img=new Image();
+    img.onload=()=>{
+      const MAX=600;
+      let w=img.width,h=img.height;
+      if(w>h&&w>MAX){h=Math.round(h*MAX/w);w=MAX;}
+      else if(h>=w&&h>MAX){w=Math.round(w*MAX/h);h=MAX;}
+      const c=document.createElement('canvas');
+      c.width=w; c.height=h;
+      c.getContext('2d').drawImage(img,0,0,w,h);
+      _fotoB64=c.toDataURL('image/jpeg',0.7);
+      const area=document.getElementById('n-foto-area');
+      area.innerHTML=`<img src="${_fotoB64}" style="width:100%;max-height:220px;object-fit:cover;display:block;border-radius:9px">`;
+      area.onclick=null;
+      document.getElementById('n-foto-actions').style.display='flex';
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function quitarFoto(){
+  _fotoB64=null;
+  const area=document.getElementById('n-foto-area');
+  area.innerHTML='<span class="foto-icon">📷</span><div class="foto-lbl">Tocá para abrir la cámara</div>';
+  area.onclick=()=>document.getElementById('n-foto-inp').click();
+  document.getElementById('n-foto-actions').style.display='none';
+  document.getElementById('n-foto-inp').value='';
+}
+
+function cambiarQty(d){
+  _qty=Math.max(1,_qty+d);
+  document.getElementById('n-qty').textContent=_qty;
+}
+
+// ─────────────────────────────────────────────
+// EXPORTAR ZIP
+// ─────────────────────────────────────────────
+async function exportarZIP(){
+  const items=DB.getItems();
+  if(!items.length){ toast('No hay prendas para exportar.'); return; }
+  const btn=document.getElementById('btn-exp');
+  btn.disabled=true; btn.textContent='... Preparando';
+  try {
+    const dataPrendas=items.map(item=>({
+      'Categoría':      item.catNombre,
+      'Prefijo cat':    item.catPrefijo||'',
+      'Subcategoría':   item.subcatNombre||'',
+      'Prefijo subcat': item.subcatPrefijo||'',
+      'Tipo de pieza':  item.tipoNombre||'',
+      'Prefijo tipo':   item.tipoPrefijo||'',
+      'Código prefijo': item.prefijo||item.catPrefijo||'',
+      'Talle':          item.sinTalle ? '' : item.talle,
+      'Sin talle':      item.sinTalle ? 'Sí' : 'No',
+      'Cantidad':       item.qty,
+      'Precio alquiler':item.palq||0,
+      'Precio venta':   item.pvta||0,
+      'Precio repos.':  item.prep||0,
+      'Foto':           item.fotoId ? item.fotoId+'.jpg' : '',
+      'Fecha carga':    item.fecha
+    }));
+    const wsPrendas=XLSX.utils.json_to_sheet(dataPrendas);
+    const cats=DB.getCats();
+    const dataCats=cats.map(cat=>({
+      'ID':cat.id,'Nombre':cat.nombre,'Prefijo':cat.prefijo,
+      'Sin talle':cat.sinTalle?'Sí':'No',
+      'Subcategorías':(cat.subcats||[]).map(s=>s.nombre+' ('+s.prefijo+')').join(', '),
+      'Tipos':(cat.subcats||[]).filter(s=>s.tipos&&s.tipos.length)
+        .map(s=>s.nombre+': '+s.tipos.map(t=>t.nombre+'('+t.prefijo+')').join('/')).join(' | ')
+    }));
+    const wsCats=XLSX.utils.json_to_sheet(dataCats.length?dataCats:[{'Nota':'Sin categorías'}]);
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,wsPrendas,'Prendas');
+    XLSX.utils.book_append_sheet(wb,wsCats,'Categorías');
+    const xlsxBuf=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+    const zip=new JSZip();
+    zip.file('inventario.xlsx',xlsxBuf);
+    const fotos=zip.folder('fotos');
+    items.forEach(item=>{
+      if(!item.fotoId) return;
+      const b64full=DB.getImg(item.fotoId);
+      if(!b64full) return;
+      const b64data=b64full.split(',')[1];
+      if(b64data) fotos.file(item.fotoId+'.jpg',b64data,{base64:true});
+    });
+    const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6}});
+    const fecha=new Date().toLocaleDateString('es-AR').replace(/\//g,'-');
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url; a.download='stilo_inventario_'+fecha+'.zip';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url),5000);
+    items.forEach(item=>{ if(item.fotoId) DB.delImg(item.fotoId); });
+    DB.saveItems([]);
+    localStorage.removeItem('inv_foto_n');
+    toast('✓ ZIP descargado. App lista para el próximo lote.',3500);
+    renderInicio(); renderNueva();
+  } catch(e){
+    console.error(e);
+    toast('Error al exportar. ¿Tenés conexión a internet?',3500);
+  } finally {
+    btn.disabled=false; btn.textContent='⬇ Exportar';
+  }
+}
+
+// ─────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────
+(function init(){
+  renderInicio();
+  goScreen(1);
+})();
+</script>
+</body>
+</html>
